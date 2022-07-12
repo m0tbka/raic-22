@@ -1,4 +1,8 @@
+"""Overloaded float functions"""
+
+
 class Float(float):
+    """Методы не вызываются!!!"""
     EPS = 1e-9
 
     def __eq__(self, other):
@@ -11,6 +15,7 @@ class Float(float):
 
     def __lt__(self, other):
         """self < other"""
+        print("FLOAT:", self, other, self - other)
         return self - other < Float.EPS
 
     def __le__(self, other):
