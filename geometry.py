@@ -1,7 +1,9 @@
 """Vector geometry with all methods"""
 
 from model.vec2 import Vec2
+
 from strategy.float import Float
+
 from math import pi, sqrt, cos, sin
 
 
@@ -12,6 +14,10 @@ class Vec(Vec2):
         super(Vec, self).__init__(x, y)
         self.len = self.get_len()
         """The length of the vector"""
+
+    def get_len(self) -> Float:
+        """Returns the length of the vector"""
+        return (self.x ** 2 + self.y ** 2) ** 0.5
 
     def __add__(self, other):
         """Creates new vector equals to sum of two vectors"""
@@ -81,10 +87,6 @@ class Vec(Vec2):
         """Returns True if self equal other else False"""
         return self.x == other.x and self.y == other.y
 
-    def get_len(self) -> Float:
-        """Returns the length of the vector"""
-        return (self.x ** 2 + self.y ** 2) ** 0.5
-
 
 class Figure:
     """Class of all geometry 2D figures"""
@@ -118,9 +120,9 @@ class Line(Figure):
             """Coefficient B of line"""
             self.c = c
             """Coefficient C of line"""
-            self.first_point = Vec(0, self[0])
+            self.first_point = Vec(Float(0), self[0])
             """One of the point line include"""
-            self.second_point = Vec(0, self[1])
+            self.second_point = Vec(Float(0), self[1])
             """Another of the point line include"""
         else:
             self.first_point = first_point
@@ -190,9 +192,12 @@ class Line(Figure):
         if type(item) is Vec:
             """Item is a point"""
             item: Vec
+
+            print("LINE:", item, Vec(item.x, self[item.x]))
+
             return Vec(item.x, self[item.x]) == item
 
-        """Item is segment"""
+        """Item is a segment"""
         item: Segment
         return item.a == self.a and item.b == self.b and item.c == self.c
 
@@ -225,15 +230,18 @@ class Segment(Line):
         self.square = self.count_square()
         """Length(square) of the segment"""
 
-    def __contains__(self, item: Vec) -> bool:
-        """Returns True if item(point) belong to the segment(is a subset of the segment) else False"""
-
-        return super(Segment, self).__contains__(item) and \
-            (item - self.begin_point) * (item - self.end_point) < 0
-
     def count_square(self) -> Float:
         """Counts length(square) of the segment"""
         return (self.end_point - self.begin_point).len
+
+    def __contains__(self, item: Vec) -> bool:
+        """Returns True if item(point) belong to the segment(is a subset of the segment) else False"""
+
+        print("IAM:", self)
+        print(f"IN: {item} : {super(Segment, self).__contains__(item)} , {(item - self.begin_point) * (item - self.end_point)}")
+
+        return super(Segment, self).__contains__(item) and \
+            (item - self.begin_point) * (item - self.end_point) < Float(0)
 
     # def intersection(self, other) -> Float:
     #     """Returns point of intersection of two segments"""
@@ -250,6 +258,76 @@ class Circle(Figure):
         """Radius of circle"""
         self.square = self.count_square()
         """Square of circle"""
+
+    def count_square(self) -> Float:
+        """Counts square of the circle"""
+        return self.radius ** 2 * pi
+
+    def intersection_with_line(self, other: Line) -> tuple:
+        """Returns two points of intersection of circle and Line"""
+
+        inter1, inter2 = None, None
+
+        desc = Float(-(4 * other.a ** 2 + 4 * other.b ** 2) * (
+                self.centre_point.x ** 2 + self.centre_point.y ** 2 - self.radius ** 2 + 2 * other.c *
+                self.centre_point.x / other.a + other.c ** 2 / other.a ** 2) / other.a ** 2 + (
+                             -2 * other.a ** 2 * self.centre_point.y + 2 * other.a * other.b * self.centre_point.x + 2
+                             * other.b * other.c) ** 2 / other.a ** 4)
+
+        count_y = lambda D: other.a ** 2 * (D - (
+                -2 * other.a ** 2 * self.centre_point.y + 2 * other.a * other.b * self.centre_point.x + 2 * other.b
+                * other.c) / other.a ** 2) / (2 * other.a ** 2 + 2 * other.b ** 2)
+        count_x = lambda D: -other.b * count_y(D) / other.a - other.c / other.a
+
+        if desc == 0.0:
+            """There is only one solution(point)"""
+            desc = 0
+            inter1 = Vec(count_x(desc), count_y(desc))
+            inter2 = None
+        elif desc > 0.0:
+            """There are two different solutions(points)"""
+            desc = sqrt(desc)
+            inter1 = Vec(count_x(desc), count_y(desc))
+            inter2 = Vec(count_x(-desc), count_y(-desc))
+
+        return inter1, inter2
+
+    def intersection_with_segment(self, other: Segment = None, position: Vec = None) -> tuple:
+        """Returns up to two points of intersection of circle and Segment if they exist.
+            If other is None, Segment will be started at self.centre_point and ended at 'position'.
+            If one of the points is None(doesn't exist), it will be at second position(index 1) in returned tuple"""
+
+        inter1, inter2 = None, None
+        """Points of intersection"""
+
+        print("First:", other, position)
+
+        if other is None:
+            if position is None:
+                return inter1, inter2
+            other = Segment(position, self.centre_point)
+
+        print("Second:", other, position)
+
+        intersection_line_circle = self.intersection_with_line(other)
+        """Intersection of circle and line that contains Segment"""
+
+        print("LineInss:", intersection_line_circle)
+
+        if intersection_line_circle[0] is not None and intersection_line_circle[0] in other:
+            """First point belong to Segment"""
+            print(111)
+            inter1 = intersection_line_circle[0]
+
+        if intersection_line_circle[1] is not None and intersection_line_circle[1] in other:
+            """Second point belong to Segment"""
+            print(222)
+            inter2 = intersection_line_circle[1]
+
+        print("Points:", inter1, inter2)
+        print("Ans:", tuple(sorted([inter1, inter2], key=lambda elem: 1 if elem is None else -1)))
+
+        return tuple(sorted([inter1, inter2], key=lambda elem: 1 if elem is None else -1))
 
     def __contains__(self, item) -> bool:
         """Returns True if intersection of circle and item exists else False"""
@@ -272,63 +350,6 @@ class Circle(Figure):
 
         "Item isn't one of the written figures"
         return False
-
-    def count_square(self) -> Float:
-        """Counts square of the circle"""
-        return self.radius ** 2 * pi
-
-    def intersection_with_line(self, other: Line) -> tuple:
-        """Returns two points of intersection of circle and Line"""
-
-        inter1, inter2 = None, None
-
-        desc = Float(-(4 * other.a ** 2 + 4 * other.b ** 2) * (
-                self.centre_point.x ** 2 + self.centre_point.y ** 2 - self.radius ** 2 + 2 * other.c *
-                self.centre_point.x / other.a + other.c ** 2 / other.a ** 2) / other.a ** 2 + (
-                             -2 * other.a ** 2 * self.centre_point.y + 2 * other.a * other.b * self.centre_point.x + 2
-                             * other.b * other.c) ** 2 / other.a ** 4)
-
-        count_y = lambda D: other.a ** 2 * (D - (
-                -2 * other.a ** 2 * self.centre_point.y + 2 * other.a * other.b * self.centre_point.x + 2 * other.b
-                * other.c) / other.a ** 2) / (2 * other.a ** 2 + 2 * other.b ** 2)
-        count_x = lambda D: -other.b * count_y(D) / other.a - other.c / other.a
-        
-        if desc == 0.0:
-            """There is only one solution(point)"""
-            desc = 0
-            inter1 = Vec(count_x(desc), count_y(desc))
-            inter2 = None
-        elif desc < 0.0:
-            """Intersection doesn't exist"""
-            inter1 = None
-            inter2 = None
-        else:
-            """There are two different solutions(points)"""
-            desc = sqrt(desc)
-            inter1 = Vec(count_x(desc), count_y(desc))
-            inter2 = Vec(count_x(-desc), count_y(-desc))
-
-        return inter1, inter2
-
-    def intersection_with_segment(self, other: Segment):
-        """Returns up to two points of intersection of circle and Segment if they exist"""
-
-        inter1, inter2 = None, None
-        """Points of intersection"""
-
-        intersection_line_circle = self.intersection_with_line(other)
-        """Intersection of circle and line that contains Segment"""
-
-        if intersection_line_circle[0] is not None and intersection_line_circle[0] in other:
-            """First point belong to Segment"""
-            inter1 = intersection_line_circle[0]
-
-        if intersection_line_circle[1] is not None and intersection_line_circle[2] in other:
-            """Second point belong to Segment"""
-            inter2 = intersection_line_circle[1]
-
-        return inter1, inter2
-
 
     def __repr__(self):
         return "Circle(" + \
