@@ -2,7 +2,7 @@
 
 from model.unit import Unit
 
-from strategy.float import Float
+from strategy.float import equal_float, lt_float, le_float
 from strategy.geometry import Vec, Line, Segment, Circle
 
 
@@ -11,13 +11,14 @@ class UnitAdv:
 
     unit: Unit
     weapons: dict
-    ticks_per_seconds: Float
-    max_unit_forward_speed: Float
-    max_unit_backward_speed: Float
+    ticks_per_seconds: float
+    max_unit_forward_speed: float
+    max_unit_backward_speed: float
     speed_limit_circle: Circle
     acceleration_limit_circle: Circle
 
-    def __init__(self, unit: Unit, weapons: dict, max_unit_forward_speed: Float, max_unit_backward_speed: Float, unit_acceleration: Float, ticks_per_seconds: Float):
+    def __init__(self, unit: Unit, weapons: dict, max_unit_forward_speed: float, max_unit_backward_speed: float,
+                 unit_acceleration: float, ticks_per_seconds: float):
         self.ticks_per_seconds = ticks_per_seconds
         """Ticks per seconds"""
         self.unit = unit
@@ -34,7 +35,8 @@ class UnitAdv:
             (Vec() + self.unit.direction) * (max_unit_forward_speed - max_unit_backward_speed) / 2,
             (self.max_unit_forward_speed + self.max_unit_backward_speed) / 2)
         """Speed limit circle, it limits target speed"""
-        self.acceleration_limit_circle = Circle(Vec() + self.unit.position + self.unit.velocity, unit_acceleration / ticks_per_seconds)
+        self.acceleration_limit_circle = Circle(Vec() + self.unit.position + self.unit.velocity,
+                                                unit_acceleration / ticks_per_seconds)
         """Limit of next speed"""
 
     def move_to_position(self, position: Vec) -> Vec:
@@ -79,7 +81,7 @@ class UnitAdv:
         new_direction = position - self.unit.position
         """New vector direction(any length)"""
 
-        if new_direction.len < 0.6:
+        if lt_float(new_direction.len, 0.6):
             """Checking and recounting vector length that it follows the rules"""
             new_direction *= (1 / new_direction.len)
 
