@@ -93,6 +93,10 @@ class Vec(Vec2):
         """Returns True if self equal other else False"""
         return equal_float(self.x, other.x) and equal_float(self.y, other.y)
 
+    def __ne__(self, other):
+        """Returns True if self not equal other else False"""
+        return not self == other
+
 
 class Figure:
     """Class of all geometry 2D figures"""
