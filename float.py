@@ -11,12 +11,12 @@ def equal_float(self, other):
 
 def lt_float(self, other):
     """self < other"""
-    return round(self - epsilon * 0.5, after_point) - round(other - epsilon * 0.5, after_point) < epsilon
+    return round(self - epsilon * 0.5, after_point) < round(other - epsilon * 0.5, after_point)
 
 
 def le_float(self, other):
     """self <= other"""
-    return round(self - epsilon * 0.5, after_point) - round(other - epsilon * 0.5, after_point) <= epsilon
+    return round(self - epsilon * 0.5, after_point) <= round(other - epsilon * 0.5, after_point)
 
 
 # class Float(float):
