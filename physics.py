@@ -37,14 +37,15 @@ class Charge:
 class ObstacleCharge(Charge):
     """Charge of obstacles"""
 
-    obs_radius: float
+    const_circle: Circle
+    distribution_circle: Circle
 
-    def __init__(self, centre_pos: Vec, quantity_charge: float, obs_radius: float):
+    def __init__(self, centre_pos: Vec, quantity_charge: float, obs_radius: float, distribution_radius: float):
         super().__init__(centre_pos, quantity_charge)
-        self.obs_radius = obs_radius
-        """Radius of an obstacle"""
         self.const_circle = Circle(centre_pos, obs_radius)
         """Circle of constant charge"""
+        self.distribution_circle = Circle(centre_pos, distribution_radius)
+        """Distribution of charge circle"""
 
     def rule(self, position: Vec) -> float:
         """Rule for obstacles"""
@@ -52,6 +53,26 @@ class ObstacleCharge(Charge):
         if position in self.const_circle:
             """Position in obstacle -> don't need to go here"""
             return self.quantity_charge
+
+        if position in self.distribution_circle:
+            """Position near obstacle -> go around"""
+
+            intersection_point_obs = self.const_circle.intersection_with_segment(position=position)[0]
+            "Intersection of a segment and obs circle"
+
+            length_intersection = (position - intersection_point_obs).len
+            """Length of a segment from position to intersection of obs circle and 
+                segment from center of obs to position"""
+
+            intersection_point_distribution = self.distribution_circle.intersection_with_segment(
+                position=(position - self.centre_pos) * 10)[0]
+            """Intersection of a segment and distribution circle"""
+
+            length_obs_distribution = (intersection_point_distribution - intersection_point_obs).len
+            """Length of a segment from intersection of distribution circle and segment from center of obs to 
+                position to intersection of obs circle and segment from center of obs to position"""
+
+            return self.quantity_charge - (length_intersection / length_obs_distribution) * self.quantity_charge
 
         """Position isn't near obstacle -> position is OK"""
         return 0
@@ -62,7 +83,9 @@ class ObstacleCharge(Charge):
                ", " + \
                repr(self.centre_pos) + \
                ", " + \
-               repr(self.obs_radius) + \
+               repr(self.const_circle) + \
+               ", " + \
+               repr(self.distribution_circle) + \
                ")"
 
 
@@ -123,6 +146,44 @@ class ZoneCharge(Charge):
                ', ' + \
                repr(self.next_zone) + \
                ')'
+
+
+class PointCharge(Charge):
+    """Charge of one point and its circle"""
+
+    distribution_circle: Circle
+
+    def __init__(self, centre_pos: Vec, quantity_charge: float, distribution_radius: float):
+        super().__init__(centre_pos, quantity_charge)
+        self.distribution_circle = Circle(centre_pos, distribution_radius)
+        """Distribution of charge circle"""
+
+    def rule(self, position: Vec) -> float:
+        """Rule for obstacles"""
+
+        if position == self.centre_pos:
+            """Position in obstacle -> don't need to go here"""
+            return self.quantity_charge
+
+        if position in self.distribution_circle:
+            """Position near obstacle -> go around"""
+
+            length_to_position = (position - self.centre_pos).len
+            """Length of segment from position to centre_pos"""
+
+            return self.quantity_charge - (length_to_position / self.distribution_circle.radius) * self.quantity_charge
+
+        """Position isn't near obstacle -> position is OK"""
+        return 0
+
+    def __repr__(self):
+        return "PointCharge(" + \
+               repr(self.quantity_charge) + \
+               ", " + \
+               repr(self.centre_pos) + \
+               ", " + \
+               repr(self.distribution_circle) + \
+               ")"
 
 
 class ProjectileCharge(Charge):
